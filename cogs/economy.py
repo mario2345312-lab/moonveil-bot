@@ -1,5 +1,6 @@
-"""Economía: /hearts /daily /streak /leaderboard /work /rob."""
+"""Economía: /hearts /daily /streak /leaderboard /work /rob /pescar."""
 
+import asyncio
 import random
 from datetime import date, datetime, timedelta
 
@@ -354,6 +355,47 @@ class EconomyCog(commands.Cog):
                 color=config.COLOR_ERROR)
         embed.timestamp = discord.utils.utcnow()
         await interaction.followup.send(embed=embed)
+
+    @app_commands.command(
+        name="pescar",
+        description="Ve de pesca y gana Hearts (cooldown de 1 hora).")
+    @app_commands.guild_only()
+    async def pescar(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        lang = await user_lang(self.bot, interaction)
+        db = self.bot.db
+        guild_id, user_id = interaction.guild.id, interaction.user.id
+        u = await db.get_user(guild_id, user_id)
+
+        left = _cd_left(u["last_fish"], config.FISH_COOLDOWN_MIN // 60 or 1)
+        if left:
+            return await interaction.followup.send(
+                t(lang, "fish.cooldown", time=_fmt_cd(left)), ephemeral=True)
+
+        await interaction.followup.send(t(lang, "fish.casting"))
+        await asyncio.sleep(1.8)
+        await interaction.edit_original_response(
+            content=t(lang, "fish.bite"))
+        await asyncio.sleep(1.5)
+
+        total = sum(r["chance"] for r in config.FISH_REWARDS)
+        roll, acc, catch = random.uniform(0, total), 0, config.FISH_REWARDS[0]
+        for r in config.FISH_REWARDS:
+            acc += r["chance"]
+            if roll <= acc:
+                catch = r
+                break
+        hearts = random.randint(*catch["hearts"])
+        name = catch["name_en"] if lang == "en" else catch["name_es"]
+
+        await db.set_last_fish(
+            guild_id, user_id,
+            discord.utils.utcnow().replace(tzinfo=None).isoformat())
+        if hearts:
+            await db.add_hearts(guild_id, user_id, hearts)
+
+        await interaction.edit_original_response(
+            content=t(lang, "fish.caught", name=name, hearts=hearts))
 
 
 async def setup(bot):

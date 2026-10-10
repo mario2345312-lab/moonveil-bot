@@ -133,10 +133,16 @@ class UtilityCog(commands.Cog):
             if channel is None:
                 continue
             try:
-                user = await self.bot.db.get_user(r["guild_id"], r["user_id"])
-                await channel.send(
-                    t(user["lang"] or "es", "rem.ping",
-                      user=f"<@{r['user_id']}>", text=r["text"]))
+                if r["kind"] == "event":
+                    await channel.send(
+                        f"{t('es', 'event.announce', text=r['text'])}\n"
+                        f"{t('en', 'event.announce', text=r['text'])}")
+                else:
+                    user = await self.bot.db.get_user(r["guild_id"],
+                                                      r["user_id"])
+                    await channel.send(
+                        t(user["lang"] or "es", "rem.ping",
+                          user=f"<@{r['user_id']}>", text=r["text"]))
             except discord.HTTPException:
                 pass
 

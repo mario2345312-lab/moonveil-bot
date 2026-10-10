@@ -792,6 +792,8 @@ class BattleSelect(discord.ui.Select):
                 embed.description += t(lang, "mv.level_up",
                                        stage=stages[new_stage][0])
             embed.color = config.COLOR_SUCCESS
+            embed.description += await _boss_damage(
+                self.bot, interaction, lang, hearts)
         else:
             embed.title = t(lang, "mv.battle_lose")
             embed.description = t(
@@ -800,6 +802,49 @@ class BattleSelect(discord.ui.Select):
             embed.color = config.COLOR_ERROR
         await interaction.edit_original_response(
             embed=embed, view=BackOnlyView(self.bot))
+
+
+async def _boss_damage(bot, interaction: discord.Interaction, lang: str,
+                       hearts: int) -> str:
+    """Aplica daño al boss semanal tras ganar una batalla. Devuelve texto
+    extra para el embed (o cadena vacía)."""
+    db = bot.db
+    gid, uid = interaction.guild.id, interaction.user.id
+    now = utcnow()
+
+    boss = await db.get_boss(gid)
+    if boss is None:
+        last = await db.latest_boss(gid)
+        stale = last is None or (
+            now - datetime.fromisoformat(last["started_at"])
+            >= timedelta(days=7))
+        if not stale:
+            return ""
+        name = config.BOSS_NAMES["en" if lang == "en" else "es"]
+        await db.create_boss(gid, name, config.BOSS_HP, now.isoformat())
+        boss = await db.get_boss(gid)
+        await send_log(bot, interaction.guild, "Boss",
+                       t("es", "boss.log_spawn", name=name, hp=config.BOSS_HP))
+
+    damage = max(1, hearts * config.BOSS_DAMAGE_FACTOR)
+    dead = await db.add_boss_damage(gid, uid, damage)
+    if dead:
+        contributors = await db.all_boss_damage(gid)
+        total = await db.total_boss_damage(gid) or 1
+        for c in contributors:
+            share = int(config.BOSS_REWARD_POOL * c["damage"] / total)
+            if share > 0:
+                await db.add_hearts(gid, c["user_id"], share)
+        await send_log(bot, interaction.guild, "Boss derrotado",
+                       f"{boss['name']} caído. Pozo repartido entre "
+                       f"{len(contributors)} jugadores.")
+        return "\n\n" + t(lang, "boss.dead", name=boss["name"],
+                          pool=config.BOSS_REWARD_POOL,
+                          n=len(contributors))
+    cur = await db.get_boss(gid)
+    hp = cur["hp"] if cur else 0
+    return "\n\n" + t(lang, "boss.damaged", damage=damage, hp=hp,
+                      max_hp=boss["max_hp"])
 
 
 class BattleView(discord.ui.View):
@@ -908,9 +953,76 @@ class PetsCog(commands.Cog):
     async def jugar(self, interaction: discord.Interaction):
         await interaction.response.defer()
         lang = await user_lang(self.bot, interaction)
+        db = self.bot.db
+        gid, uid = interaction.guild.id, interaction.user.id
+
+        embed = main_embed(interaction.user, lang)
+
+        # racha de login diario de Moonveil
+        u = await db.get_user(gid, uid)
+        today = utcnow().date().isoformat()
+        if u["mv_login_date"] != today:
+            streak = await db.bump_login_streak(gid, uid, today)
+            reward = config.LOGIN_STREAK_REWARDS.get(
+                min(streak, 7), config.LOGIN_STREAK_REWARDS[7])
+            await db.add_hearts(gid, uid, reward)
+            embed.description = (embed.description or "") + "\n\n" + t(
+                lang, "mv.login_streak", days=streak, hearts=reward)
+
         await interaction.edit_original_response(
-            embed=main_embed(interaction.user, lang),
-            view=MoonveilView(self.bot, lang))
+            embed=embed, view=MoonveilView(self.bot, lang))
+
+    @app_commands.command(
+        name="boss",
+        description="Muestra el estado del boss semanal de Moonveil.")
+    @app_commands.guild_only()
+    async def boss(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        lang = await user_lang(self.bot, interaction)
+        boss = await self.bot.db.get_boss(interaction.guild.id)
+        if boss is None:
+            return await interaction.followup.send(
+                t(lang, "boss.no_active"), ephemeral=True)
+        embed = discord.Embed(
+            title=t(lang, "boss.title", name=boss["name"]),
+            description=t(lang, "boss.status", hp=boss["hp"],
+                          max_hp=boss["max_hp"]),
+            color=config.COLOR_WARNING)
+        top = await self.bot.db.top_boss_damage(interaction.guild.id, 5)
+        if top:
+            embed.add_field(
+                name="⚔️ Top daño",
+                value="\n".join(
+                    f"**{i}.** <@{r['user_id']}> — {r['damage']}"
+                    for i, r in enumerate(top, 1)),
+                inline=False)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(
+        name="topmascotas",
+        description="Ranking de las mascotas con más XP del servidor.")
+    @app_commands.guild_only()
+    async def topmascotas(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        lang = await user_lang(self.bot, interaction)
+        rows = await self.bot.db.top_pets(interaction.guild.id, 10)
+        embed = discord.Embed(title=t(lang, "top.pets_title"),
+                              color=config.EMBED_COLOR)
+        if not rows:
+            embed.description = t(lang, "top.pets_empty")
+        else:
+            lines = []
+            for i, p in enumerate(rows, 1):
+                emoji, _ = config.PETS.get(p["species"], ("🐾", None))
+                shiny = " 🌟" if p["shiny"] else (" ✨" if p["neon"] else "")
+                lines.append(t(
+                    lang, "top.pets_entry", rank=i, emoji=emoji,
+                    species=p["species"], shiny=shiny,
+                    user=f"<@{p['user_id']}>", stage=stage_label(p),
+                    xp=p["xp"]))
+            embed.description = "\n".join(lines)
+        embed.timestamp = utcnow()
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):

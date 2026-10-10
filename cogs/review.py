@@ -29,13 +29,26 @@ KIND_LABEL = {
 }
 
 
+def staff_role_ids(settings: dict) -> list[int]:
+    """Lista de roles staff (multi-rol), con fallback a staff_role_id."""
+    import json
+    raw = settings.get("staff_role_ids")
+    if raw:
+        try:
+            return [int(x) for x in json.loads(raw)]
+        except (ValueError, TypeError):
+            pass
+    rid = settings.get("staff_role_id")
+    return [rid] if rid else []
+
+
 def is_staff(member: discord.Member, settings: dict) -> bool:
     if member.id in config.OWNER_IDS:
         return True
     if member.guild_permissions.manage_guild or member.guild_permissions.administrator:
         return True
-    staff_role_id = settings.get("staff_role_id")
-    return bool(staff_role_id) and any(r.id == staff_role_id for r in member.roles)
+    ids = set(staff_role_ids(settings))
+    return bool(ids) and any(r.id in ids for r in member.roles)
 
 
 async def notify_user(bot, guild: discord.Guild, user_id: int,
@@ -182,9 +195,8 @@ async def execute_purchase(bot, guild: discord.Guild, member: discord.Member,
             guild.me: discord.PermissionOverwrite(view_channel=True,
                                                   manage_channels=True),
         }
-        staff_role_id = settings.get("staff_role_id")
-        if staff_role_id:
-            role = guild.get_role(staff_role_id)
+        for rid in staff_role_ids(settings):
+            role = guild.get_role(rid)
             if role:
                 overwrites[role] = discord.PermissionOverwrite(view_channel=True)
         category = guild.get_channel(settings.get("temp_category_id") or 0)

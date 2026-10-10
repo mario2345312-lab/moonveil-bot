@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import config
+from cogs.review import staff_role_ids
 
 
 class SetupCog(commands.Cog):
@@ -53,14 +54,22 @@ class SetupCog(commands.Cog):
                                 "Canal de logs")
 
     @setup.command(name="rol-staff",
-                   description="Rol que puede aprobar/rechazar solicitudes.")
+                   description="Añade un rol de staff (puedes tener varios).")
     async def rol_staff(self, interaction: discord.Interaction,
                         rol: discord.Role):
         await interaction.response.defer(ephemeral=True)
-        await self.bot.db.set_setting(interaction.guild.id, "staff_role_id",
-                                      rol.id)
+        await self.bot.db.add_staff_role(interaction.guild.id, rol.id)
         await interaction.followup.send(
-            f"✅ Rol de staff configurado: {rol.mention}", ephemeral=True)
+            f"✅ Rol de staff añadido: {rol.mention}", ephemeral=True)
+
+    @setup.command(name="rol-staff-quitar",
+                   description="Quita un rol de la lista de staff.")
+    async def rol_staff_quitar(self, interaction: discord.Interaction,
+                               rol: discord.Role):
+        await interaction.response.defer(ephemeral=True)
+        await self.bot.db.remove_staff_role(interaction.guild.id, rol.id)
+        await interaction.followup.send(
+            f"✅ Rol de staff eliminado: {rol.mention}", ephemeral=True)
 
     @setup.command(name="rol-vip",
                    description="Rol que entrega el item 'Acceso VIP'.")
@@ -113,10 +122,11 @@ class SetupCog(commands.Cog):
                 view_channel=True, send_messages=True,
                 manage_messages=True, add_reactions=True),
         }
-        staff_role = g.get_role(s.get("staff_role_id") or 0)
-        if staff_role:
-            overwrites[staff_role] = discord.PermissionOverwrite(
-                view_channel=True, send_messages=True, attach_files=True)
+        for rid in staff_role_ids(s):
+            staff_role = g.get_role(rid)
+            if staff_role:
+                overwrites[staff_role] = discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, attach_files=True)
 
         try:
             canal = await g.create_text_channel(
@@ -170,6 +180,20 @@ class SetupCog(commands.Cog):
         await self._set_channel(interaction, "suggestion_channel_en_id", canal,
                                 "Canal de sugerencias (inglés)")
 
+    @setup.command(name="canal-confesiones",
+                   description="Canal donde los mensajes se publican como confesiones anónimas.")
+    async def canal_confesiones(self, interaction: discord.Interaction,
+                                canal: discord.TextChannel):
+        await self._set_channel(interaction, "confession_channel_id", canal,
+                                "Canal de confesiones")
+
+    @setup.command(name="canal-qotd",
+                   description="Canal donde el bot publica la pregunta del día.")
+    async def canal_qotd(self, interaction: discord.Interaction,
+                         canal: discord.TextChannel):
+        await self._set_channel(interaction, "qotd_channel_id", canal,
+                                "Canal de QOTD")
+
     @setup.command(name="categoria-canales",
                    description="Categoría donde se crean los canales privados temporales.")
     async def categoria_canales(self, interaction: discord.Interaction,
@@ -215,7 +239,9 @@ class SetupCog(commands.Cog):
             value=(
                 f"👋 Bienvenida: {ch('welcome_channel_id')}\n"
                 f"💡 Sugerencias 🇪🇸: {ch('suggestion_channel_id')}\n"
-                f"💡 Suggestions 🇺🇸: {ch('suggestion_channel_en_id')}"
+                f"💡 Suggestions 🇺🇸: {ch('suggestion_channel_en_id')}\n"
+                f"🕊️ Confesiones: {ch('confession_channel_id')}\n"
+                f"💬 QOTD: {ch('qotd_channel_id')}"
             ), inline=False)
         embed.add_field(
             name="🎨 Subida automática",
@@ -225,10 +251,12 @@ class SetupCog(commands.Cog):
                 "╰─ Crea los canales con `/setup canal-emojis` y "
                 "`/setup canal-stickers`"
             ), inline=False)
+        staff_mentions = [g.get_role(rid).mention for rid in
+                          staff_role_ids(s) if g.get_role(rid)]
         embed.add_field(
             name="🛡️ Roles",
             value=(
-                f"Staff: {rl('staff_role_id')}\n"
+                f"Staff: {', '.join(staff_mentions) if staff_mentions else '❌ sin configurar'}\n"
                 f"💎 VIP: {rl('vip_role_id')}\n"
                 f"🇪🇸 Español: {rl('lang_es_role_id')}\n"
                 f"🇺🇸 English: {rl('lang_en_role_id')}"

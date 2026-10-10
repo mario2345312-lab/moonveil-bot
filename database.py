@@ -1,5 +1,8 @@
 """Capa de acceso a datos (SQLite async con aiosqlite)."""
 
+import datetime
+import json
+
 import aiosqlite
 
 SCHEMA = """
@@ -18,6 +21,9 @@ CREATE TABLE IF NOT EXISTS users (
     items_bought    INTEGER NOT NULL DEFAULT 0,
     invites_count   INTEGER NOT NULL DEFAULT 0,
     custom_role_id  INTEGER,
+    last_fish       TEXT,
+    mv_login_date   TEXT,
+    mv_login_streak INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (guild_id, user_id)
 );
 
@@ -31,7 +37,18 @@ CREATE TABLE IF NOT EXISTS guild_settings (
     vip_role_id     INTEGER,
     temp_category_id INTEGER,
     emoji_channel_id   INTEGER,
-    sticker_channel_id INTEGER
+    sticker_channel_id INTEGER,
+    welcome_channel_id    INTEGER,
+    suggestion_channel_id INTEGER,
+    suggestion_channel_en_id INTEGER,
+    lang_es_role_id    INTEGER,
+    lang_en_role_id    INTEGER,
+    staff_role_ids     TEXT,
+    confession_channel_id INTEGER,
+    qotd_channel_id    INTEGER,
+    confession_count   INTEGER NOT NULL DEFAULT 0,
+    qotd_index         INTEGER NOT NULL DEFAULT 0,
+    qotd_last          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS claimed_achievements (
@@ -119,7 +136,8 @@ CREATE TABLE IF NOT EXISTS reminders (
     channel_id INTEGER NOT NULL,
     user_id    INTEGER NOT NULL,
     text       TEXT NOT NULL,
-    remind_at  TEXT NOT NULL
+    remind_at  TEXT NOT NULL,
+    kind       TEXT NOT NULL DEFAULT 'user'
 );
 
 CREATE TABLE IF NOT EXISTS lottery_tickets (
@@ -142,13 +160,64 @@ CREATE TABLE IF NOT EXISTS auctions (
     ended       INTEGER NOT NULL DEFAULT 0,
     host_id     INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS warnings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id     INTEGER NOT NULL,
+    user_id      INTEGER NOT NULL,
+    moderator_id INTEGER NOT NULL,
+    reason       TEXT NOT NULL,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS birthdays (
+    guild_id         INTEGER NOT NULL,
+    user_id          INTEGER NOT NULL,
+    month            INTEGER NOT NULL,
+    day              INTEGER NOT NULL,
+    last_wished_year INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS afk (
+    guild_id INTEGER NOT NULL,
+    user_id  INTEGER NOT NULL,
+    reason   TEXT NOT NULL,
+    set_at   TEXT NOT NULL,
+    PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS custom_commands (
+    guild_id   INTEGER NOT NULL,
+    name       TEXT NOT NULL,
+    response   TEXT NOT NULL,
+    created_by INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS boss (
+    guild_id   INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL,
+    hp         INTEGER NOT NULL,
+    max_hp     INTEGER NOT NULL,
+    active     INTEGER NOT NULL DEFAULT 1,
+    started_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS boss_damage (
+    guild_id INTEGER NOT NULL,
+    user_id  INTEGER NOT NULL,
+    damage   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+);
 """
 
 USER_COLS = (
     "hearts, last_daily, streak, best_streak, total_earned, total_spent, "
     "dailies_claimed, flips_played, flips_won, items_bought, invites_count, "
     "custom_role_id, dream_pet, starter_claimed, last_work, last_rob, "
-    "mv_explores, mv_battles, mv_battle_wins, mv_neons, lang"
+    "mv_explores, mv_battles, mv_battle_wins, mv_neons, lang, "
+    "last_fish, mv_login_date, mv_login_streak"
 )
 
 
@@ -178,19 +247,34 @@ class Database:
             "mv_battle_wins": "INTEGER NOT NULL DEFAULT 0",
             "mv_neons": "INTEGER NOT NULL DEFAULT 0",
             "lang": "TEXT",
+            "last_fish": "TEXT",
+            "mv_login_date": "TEXT",
+            "mv_login_streak": "INTEGER NOT NULL DEFAULT 0",
         }.items():
             if col not in cols:
                 await self.conn.execute(
                     f"ALTER TABLE users ADD COLUMN {col} {ddl}")
         cur = await self.conn.execute("PRAGMA table_info(guild_settings)")
         gcols = {r["name"] for r in await cur.fetchall()}
-        for col in ("emoji_channel_id", "sticker_channel_id",
-                    "welcome_channel_id", "suggestion_channel_id",
-                    "suggestion_channel_en_id",
-                    "lang_es_role_id", "lang_en_role_id"):
+        for col, ddl in {
+            "emoji_channel_id": "INTEGER", "sticker_channel_id": "INTEGER",
+            "welcome_channel_id": "INTEGER", "suggestion_channel_id": "INTEGER",
+            "suggestion_channel_en_id": "INTEGER",
+            "lang_es_role_id": "INTEGER", "lang_en_role_id": "INTEGER",
+            "staff_role_ids": "TEXT",
+            "confession_channel_id": "INTEGER",
+            "qotd_channel_id": "INTEGER",
+            "confession_count": "INTEGER NOT NULL DEFAULT 0",
+            "qotd_index": "INTEGER NOT NULL DEFAULT 0",
+            "qotd_last": "TEXT",
+        }.items():
             if col not in gcols:
                 await self.conn.execute(
-                    f"ALTER TABLE guild_settings ADD COLUMN {col} INTEGER")
+                    f"ALTER TABLE guild_settings ADD COLUMN {col} {ddl}")
+        # copiar el rol staff único a la lista si aún no migró
+        await self.conn.execute(
+            "UPDATE guild_settings SET staff_role_ids='[' || staff_role_id || ']'"
+            " WHERE staff_role_ids IS NULL AND staff_role_id IS NOT NULL")
         cur = await self.conn.execute("PRAGMA table_info(pets)")
         pcols = {r["name"] for r in await cur.fetchall()}
         for col, ddl in {"shiny": "INTEGER NOT NULL DEFAULT 0",
@@ -204,6 +288,12 @@ class Database:
             await self.conn.execute(
                 "ALTER TABLE auctions ADD COLUMN min_bid "
                 "INTEGER NOT NULL DEFAULT 0")
+        cur = await self.conn.execute("PRAGMA table_info(reminders)")
+        rcols = {r["name"] for r in await cur.fetchall()}
+        if "kind" not in rcols:
+            await self.conn.execute(
+                "ALTER TABLE reminders ADD COLUMN kind "
+                "TEXT NOT NULL DEFAULT 'user'")
         await self.conn.commit()
 
     async def close(self):
@@ -360,6 +450,7 @@ class Database:
             "welcome_channel_id", "suggestion_channel_id",
             "suggestion_channel_en_id",
             "lang_es_role_id", "lang_en_role_id",
+            "confession_channel_id", "qotd_channel_id", "qotd_last",
         }
         await self.conn.execute(
             "INSERT INTO guild_settings (guild_id) VALUES (?) "
@@ -547,6 +638,12 @@ class Database:
         )
         return await cur.fetchall()
 
+    async def top_pets(self, guild_id: int, limit: int = 10):
+        cur = await self.conn.execute(
+            "SELECT * FROM pets WHERE guild_id=? ORDER BY xp DESC LIMIT ?",
+            (guild_id, limit))
+        return await cur.fetchall()
+
     async def get_pet(self, pet_id: int):
         cur = await self.conn.execute("SELECT * FROM pets WHERE id=?",
                                       (pet_id,))
@@ -642,7 +739,7 @@ class Database:
 
     async def set_timestamp(self, guild_id: int, user_id: int,
                             column: str, value: str):
-        assert column in {"last_work", "last_rob"}
+        assert column in {"last_work", "last_rob", "last_fish"}
         await self.get_user(guild_id, user_id)
         await self.conn.execute(
             f"UPDATE users SET {column}=? WHERE guild_id=? AND user_id=?",
@@ -720,11 +817,12 @@ class Database:
     # ---------- recordatorios ----------
 
     async def add_reminder(self, guild_id: int, channel_id: int, user_id: int,
-                           text: str, remind_at: str) -> int:
+                           text: str, remind_at: str,
+                           kind: str = "user") -> int:
         cur = await self.conn.execute(
             "INSERT INTO reminders (guild_id, channel_id, user_id, text, "
-            "remind_at) VALUES (?, ?, ?, ?, ?)",
-            (guild_id, channel_id, user_id, text, remind_at),
+            "remind_at, kind) VALUES (?, ?, ?, ?, ?, ?)",
+            (guild_id, channel_id, user_id, text, remind_at, kind),
         )
         await self.conn.commit()
         return cur.lastrowid
@@ -824,3 +922,265 @@ class Database:
         await self.conn.execute(
             "UPDATE auctions SET ended=1 WHERE id=?", (auction_id,))
         await self.conn.commit()
+
+    # ---------- staff (multi-rol) ----------
+
+    async def get_staff_role_ids(self, guild_id: int) -> list[int]:
+        s = await self.get_settings(guild_id)
+        raw = s.get("staff_role_ids")
+        if raw:
+            try:
+                return [int(x) for x in json.loads(raw)]
+            except (ValueError, TypeError):
+                pass
+        rid = s.get("staff_role_id")
+        return [rid] if rid else []
+
+    async def add_staff_role(self, guild_id: int, role_id: int):
+        ids = await self.get_staff_role_ids(guild_id)
+        if role_id not in ids:
+            ids.append(role_id)
+        await self._set_staff_ids(guild_id, ids)
+
+    async def remove_staff_role(self, guild_id: int, role_id: int):
+        ids = await self.get_staff_role_ids(guild_id)
+        await self._set_staff_ids(guild_id,
+                                  [i for i in ids if i != role_id])
+
+    async def _set_staff_ids(self, guild_id: int, ids: list[int]):
+        await self.conn.execute(
+            "INSERT INTO guild_settings (guild_id) VALUES (?) "
+            "ON CONFLICT(guild_id) DO NOTHING", (guild_id,))
+        await self.conn.execute(
+            "UPDATE guild_settings SET staff_role_ids=? WHERE guild_id=?",
+            (json.dumps(ids), guild_id))
+        await self.conn.commit()
+
+    # ---------- moderación ----------
+
+    async def add_warning(self, guild_id: int, user_id: int,
+                          moderator_id: int, reason: str):
+        await self.conn.execute(
+            "INSERT INTO warnings (guild_id, user_id, moderator_id, reason) "
+            "VALUES (?, ?, ?, ?)",
+            (guild_id, user_id, moderator_id, reason))
+        await self.conn.commit()
+
+    async def get_warnings(self, guild_id: int, user_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM warnings WHERE guild_id=? AND user_id=? "
+            "ORDER BY id DESC", (guild_id, user_id))
+        return await cur.fetchall()
+
+    async def clear_warnings(self, guild_id: int, user_id: int):
+        await self.conn.execute(
+            "DELETE FROM warnings WHERE guild_id=? AND user_id=?",
+            (guild_id, user_id))
+        await self.conn.commit()
+
+    # ---------- cumpleaños ----------
+
+    async def set_birthday(self, guild_id: int, user_id: int,
+                           month: int, day: int):
+        await self.conn.execute(
+            "INSERT INTO birthdays (guild_id, user_id, month, day) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(guild_id, user_id) DO UPDATE SET "
+            "month=excluded.month, day=excluded.day, last_wished_year=0",
+            (guild_id, user_id, month, day))
+        await self.conn.commit()
+
+    async def get_birthdays(self, guild_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM birthdays WHERE guild_id=? ORDER BY month, day",
+            (guild_id,))
+        return await cur.fetchall()
+
+    async def todays_birthdays(self, guild_id: int, month: int, day: int,
+                               year: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM birthdays WHERE guild_id=? AND month=? AND day=? "
+            "AND last_wished_year<?", (guild_id, month, day, year))
+        return await cur.fetchall()
+
+    async def mark_birthday_wished(self, guild_id: int, user_id: int,
+                                   year: int):
+        await self.conn.execute(
+            "UPDATE birthdays SET last_wished_year=? "
+            "WHERE guild_id=? AND user_id=?",
+            (year, guild_id, user_id))
+        await self.conn.commit()
+
+    # ---------- AFK ----------
+
+    async def set_afk(self, guild_id: int, user_id: int, reason: str,
+                      now_iso: str):
+        await self.conn.execute(
+            "INSERT INTO afk (guild_id, user_id, reason, set_at) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(guild_id, user_id) DO UPDATE SET "
+            "reason=excluded.reason, set_at=excluded.set_at",
+            (guild_id, user_id, reason, now_iso))
+        await self.conn.commit()
+
+    async def remove_afk(self, guild_id: int, user_id: int):
+        await self.conn.execute(
+            "DELETE FROM afk WHERE guild_id=? AND user_id=?",
+            (guild_id, user_id))
+        await self.conn.commit()
+
+    async def get_afk(self, guild_id: int, user_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM afk WHERE guild_id=? AND user_id=?",
+            (guild_id, user_id))
+        return await cur.fetchone()
+
+    # ---------- comandos personalizados ----------
+
+    async def add_custom_command(self, guild_id: int, name: str,
+                                 response: str, created_by: int):
+        await self.conn.execute(
+            "INSERT INTO custom_commands (guild_id, name, response, "
+            "created_by) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(guild_id, name) DO UPDATE SET "
+            "response=excluded.response, created_by=excluded.created_by",
+            (guild_id, name, response, created_by))
+        await self.conn.commit()
+
+    async def remove_custom_command(self, guild_id: int, name: str):
+        cur = await self.conn.execute(
+            "DELETE FROM custom_commands WHERE guild_id=? AND name=?",
+            (guild_id, name))
+        await self.conn.commit()
+        return cur.rowcount > 0
+
+    async def get_custom_command(self, guild_id: int, name: str):
+        cur = await self.conn.execute(
+            "SELECT response FROM custom_commands "
+            "WHERE guild_id=? AND name=?", (guild_id, name))
+        return await cur.fetchone()
+
+    async def get_custom_commands(self, guild_id: int):
+        cur = await self.conn.execute(
+            "SELECT name FROM custom_commands WHERE guild_id=? "
+            "ORDER BY name", (guild_id,))
+        return await cur.fetchall()
+
+    # ---------- boss semanal ----------
+
+    async def create_boss(self, guild_id: int, name: str, max_hp: int,
+                          now_iso: str):
+        await self.conn.execute(
+            "INSERT INTO boss (guild_id, name, hp, max_hp, active, "
+            "started_at) VALUES (?, ?, ?, ?, 1, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET name=excluded.name, "
+            "hp=excluded.hp, max_hp=excluded.max_hp, active=1, "
+            "started_at=excluded.started_at",
+            (guild_id, name, max_hp, max_hp, now_iso))
+        await self.conn.execute(
+            "DELETE FROM boss_damage WHERE guild_id=?", (guild_id,))
+        await self.conn.commit()
+
+    async def get_boss(self, guild_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM boss WHERE guild_id=? AND active=1", (guild_id,))
+        return await cur.fetchone()
+
+    async def latest_boss(self, guild_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM boss WHERE guild_id=?", (guild_id,))
+        return await cur.fetchone()
+
+    async def all_boss_damage(self, guild_id: int):
+        cur = await self.conn.execute(
+            "SELECT user_id, damage FROM boss_damage WHERE guild_id=?",
+            (guild_id,))
+        return await cur.fetchall()
+
+    async def add_boss_damage(self, guild_id: int, user_id: int,
+                              damage: int) -> bool:
+        """Suma daño; devuelve True si el boss murió con este golpe."""
+        await self.conn.execute(
+            "INSERT INTO boss_damage (guild_id, user_id, damage) "
+            "VALUES (?, ?, ?) "
+            "ON CONFLICT(guild_id, user_id) DO UPDATE SET "
+            "damage=damage+excluded.damage",
+            (guild_id, user_id, damage))
+        await self.conn.execute(
+            "UPDATE boss SET hp=MAX(0, hp-?) WHERE guild_id=? AND active=1",
+            (damage, guild_id))
+        cur = await self.conn.execute(
+            "SELECT hp FROM boss WHERE guild_id=? AND active=1", (guild_id,))
+        row = await cur.fetchone()
+        dead = row is not None and row["hp"] <= 0
+        if dead:
+            await self.conn.execute(
+                "UPDATE boss SET active=0 WHERE guild_id=?", (guild_id,))
+        await self.conn.commit()
+        return dead
+
+    async def top_boss_damage(self, guild_id: int, limit: int = 5):
+        cur = await self.conn.execute(
+            "SELECT user_id, damage FROM boss_damage WHERE guild_id=? "
+            "ORDER BY damage DESC LIMIT ?", (guild_id, limit))
+        return await cur.fetchall()
+
+    async def total_boss_damage(self, guild_id: int) -> int:
+        cur = await self.conn.execute(
+            "SELECT COALESCE(SUM(damage),0) AS d FROM boss_damage "
+            "WHERE guild_id=?", (guild_id,))
+        return (await cur.fetchone())["d"]
+
+    # ---------- confesiones / QOTD ----------
+
+    async def bump_confession(self, guild_id: int) -> int:
+        """Incrementa el contador y devuelve el número de la confesión."""
+        await self.conn.execute(
+            "INSERT INTO guild_settings (guild_id) VALUES (?) "
+            "ON CONFLICT(guild_id) DO NOTHING", (guild_id,))
+        await self.conn.execute(
+            "UPDATE guild_settings SET "
+            "confession_count=confession_count+1 WHERE guild_id=?",
+            (guild_id,))
+        await self.conn.commit()
+        cur = await self.conn.execute(
+            "SELECT confession_count FROM guild_settings WHERE guild_id=?",
+            (guild_id,))
+        return (await cur.fetchone())["confession_count"]
+
+    async def qotd_next_index(self, guild_id: int, total: int) -> int:
+        """Avanza el índice de preguntas (cíclico) y lo devuelve."""
+        await self.conn.execute(
+            "INSERT INTO guild_settings (guild_id) VALUES (?) "
+            "ON CONFLICT(guild_id) DO NOTHING", (guild_id,))
+        cur = await self.conn.execute(
+            "SELECT qotd_index FROM guild_settings WHERE guild_id=?",
+            (guild_id,))
+        idx = ((await cur.fetchone())["qotd_index"] or 0) + 1
+        await self.conn.execute(
+            "UPDATE guild_settings SET qotd_index=? WHERE guild_id=?",
+            (idx, guild_id))
+        await self.conn.commit()
+        return idx % total
+
+    # ---------- misc: pescar / racha login ----------
+
+    async def set_last_fish(self, guild_id: int, user_id: int, now_iso: str):
+        await self.set_timestamp(guild_id, user_id, "last_fish", now_iso)
+
+    async def bump_login_streak(self, guild_id: int, user_id: int,
+                                today_iso: str) -> int:
+        """Devuelve la racha actualizada (1 si es reset o primer día)."""
+        u = await self.get_user(guild_id, user_id)
+        last = u["mv_login_date"]
+        if last == today_iso:
+            return u["mv_login_streak"]
+        yesterday = (datetime.date.fromisoformat(today_iso)
+                     - datetime.timedelta(days=1)).isoformat()
+        streak = u["mv_login_streak"] + 1 if last == yesterday else 1
+        await self.conn.execute(
+            "UPDATE users SET mv_login_date=?, mv_login_streak=? "
+            "WHERE guild_id=? AND user_id=?",
+            (today_iso, streak, guild_id, user_id))
+        await self.conn.commit()
+        return streak

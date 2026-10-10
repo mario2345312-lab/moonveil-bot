@@ -1,6 +1,6 @@
 # Moonveil Bot
 
-Bot de Discord con economía de Hearts para la comunidad Moonveil (Adopt Me): tienda con aprobación del staff, rachas diarias, logros, misiones, minijuegos, lotería, sorteos, subastas, bienvenidas, subida automática de emojis/stickers, y **Moonveil** — un juego de mascotas de Adopt Me con exploración, batallas, Neon y Shiny.
+Bot de Discord con economía de Hearts para la comunidad Moonveil (Adopt Me): tienda con aprobación del staff, rachas diarias, logros, misiones, minijuegos, lotería, sorteos, subastas, bienvenidas, subida automática de emojis/stickers, moderación con automod, confesiones anónimas, cumpleaños, QOTD, AFK, comandos personalizados, eventos, y **Moonveil** — un juego de mascotas de Adopt Me con exploración, batallas, Neon, Shiny y boss semanal.
 
 ## Instalación
 
@@ -23,6 +23,9 @@ GUILD_ID=123456789   # opcional: sync instantáneo en tu servidor de prueba
    - **Manage Roles** (la tienda y los logros crean/asignan roles — el rol del bot debe estar *por encima* de los roles que asigna)
    - **Manage Channels** (canal privado temporal)
    - **Manage Emojis and Stickers** (staff sube emojis/stickers con el bot)
+   - **Manage Messages** (automod y `/purge`)
+   - **Moderate Members** (`/mute` y timeout por spam)
+   - **Kick Members** / **Ban Members** (`/kick`, `/ban`)
    - Enviar mensajes / embeds / usar comandos de aplicación
 
 ## Ejecutar
@@ -43,7 +46,8 @@ Con permiso de *Manage Server*, usa `/setup`:
 | `/setup canal-logros #canal` | Reclamos de logros con captura |
 | `/setup canal-misiones #canal` | Reclamos de misiones con captura |
 | `/setup canal-logs #canal` | Registro de acciones del bot (opcional) |
-| `/setup rol-staff @rol` | Quién aprueba/rechaza (si no, cualquiera con Manage Server) |
+| `/setup rol-staff @rol` | **Añade** un rol staff — puedes tener varios (repite el comando) |
+| `/setup rol-staff-quitar @rol` | Quita un rol de la lista de staff |
 | `/setup rol-vip @rol` | Rol que entrega "Acceso VIP" (si no, el bot crea "VIP") |
 | `/setup categoria-canales #cat` | Dónde se crean los canales temporales |
 | `/setup canal-emojis` | Crea `#emojis-auto` (sube imágenes → emojis automáticos) |
@@ -51,6 +55,10 @@ Con permiso de *Manage Server*, usa `/setup`:
 | `/setup canal-bienvenida #canal` | Canal donde el bot saluda a los nuevos |
 | `/setup canal-sugerencias #canal` | Canal de sugerencias en español (mensajes → votos) |
 | `/setup canal-sugerencias-en #canal` | Canal de sugerencias en inglés (mensajes → votos) |
+| `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión numerada) |
+| `/setup canal-qotd #canal` | Canal de la pregunta del día (diaria, bilingüe) |
+| `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión sin autor) |
+| `/setup canal-qotd #canal` | Canal donde el bot publica la pregunta del día |
 | `/setup rol-espanol @rol` | Rol de miembros que hablan español |
 | `/setup rol-ingles @rol` | Rol de miembros que hablan inglés |
 | `/setup estado` | Ver qué está configurado y qué falta |
@@ -68,8 +76,10 @@ Cubre: economía, juegos, Moonveil, tienda, progresión, sorteos/subastas, DMs d
 ## Comandos de usuarios
 
 - `/shop`, `/buy` — tienda (las compras las aprueba el staff antes de ejecutarse)
-- `/hearts`, `/daily`, `/work`, `/rob`, `/streak`, `/leaderboard`, `/profile`, `/dream-pet` — economía
-- `/jugar` — **Moonveil**: adopta mascotas de Adopt Me, explóralas, batalla contra salvajes, combina Neon y consigue ✨ Shiny
+- `/hearts`, `/daily`, `/work`, `/rob`, `/streak`, `/leaderboard`, `/profile`, `/dream-pet`, `/pescar` — economía
+- `/jugar` — **Moonveil**: adopta mascotas de Adopt Me, explóralas, batalla contra salvajes, combina Neon y consigue ✨ Shiny (incluye racha de login diario)
+- `/boss`, `/topmascotas` — boss semanal comunitario (las batallas lo dañan y reparten pozo) y ranking de mascotas
+- `/cumple`, `/afk` — cumpleaños con felicitación diaria y estado AFK con avisos
 - `/flip`, `/dice`, `/slots`, `/rps`, `/guess` — minijuegos con animación
 - `/blackjack`, `/ruleta`, `/trivia` — más juegos de apuestas
 - `/loteria` — tickets para un pozo acumulado de Hearts
@@ -86,6 +96,9 @@ Cubre: economía, juegos, Moonveil, tienda, progresión, sorteos/subastas, DMs d
 - `/subasta` — subastas por Hearts con reembolso al superado
 - `/encuesta` — encuestas con votos 1️⃣-4️⃣
 - `/say`, `/anuncio` — publicar mensajes/embeds del bot
+- `/warn`, `/warns`, `/warns-limpiar`, `/mute`, `/kick`, `/ban`, `/purge` — moderación (con automod: links, groserías, spam y caps)
+- `/comando agregar`, `/comando quitar`, `/comando lista` — comandos personalizados `!nombre`
+- `/evento` — recordatorios/anuncios programados para todo el servidor
 - `/emoji-add`, `/emoji-tomar`, `/sticker-add`, `/emoji-borrar`, `/sticker-borrar` — gestión de emojis/stickers
 
 ## Personalizar

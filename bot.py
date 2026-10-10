@@ -38,6 +38,8 @@ COGS = [
     "cogs.lottery",
     "cogs.community",
     "cogs.utility",
+    "cogs.moderation",
+    "cogs.social",
 ]
 
 

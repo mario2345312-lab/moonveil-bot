@@ -453,6 +453,7 @@ STRINGS.update({
           "• `/rob` - Intenta robar Hearts a otro usuario.\n"
           "• `/loteria` - Compra tickets para el pozo acumulado.\n"
           "• `/streak` - Muestra tu racha de actividad diaria actual.\n"
+          "• `/pescar` - Ve de pesca y gana Hearts (cada hora).\n"
           "• `/leaderboard` - Tabla de usuarios con más Hearts.\n"
           "• `/language` - Elige tu idioma (español/inglés).",
     "en": "• `/hearts` - Check your Hearts balance and stats.\n"
@@ -463,6 +464,7 @@ STRINGS.update({
           "• `/rob` - Try to steal Hearts from another user.\n"
           "• `/loteria` - Buy tickets for the jackpot.\n"
           "• `/streak` - Show your daily streak.\n"
+          "• `/pescar` - Go fishing for Hearts (hourly).\n"
           "• `/leaderboard` - Top Hearts leaderboard.\n"
           "• `/language` - Choose your language (English/Spanish)."},
 "help.games": {"es": "🎮 Mini-juegos y Diversión", "en": "🎮 Minigames & Fun"},
@@ -493,12 +495,20 @@ STRINGS.update({
           "publica tu idea con votos.\n"
           "• `/recordatorio` - Programa un recordatorio (10m, 2h, 1d).\n"
           "• `/sorteo` - Participa en sorteos con el botón 🎉.\n"
-          "• `/subasta` - Puja por artículos en las subastas del staff.",
+          "• `/subasta` - Puja por artículos en las subastas del staff.\n"
+          "• `/cumple` - Registra tu cumpleaños para recibir felicitación.\n"
+          "• `/afk` - Marca AFK con un mensaje opcional.\n"
+          "• `/topmascotas` - Ranking de las mejores mascotas del server.\n"
+          "• `#confesiones` - Escribe allí y el bot lo publica anónimo.",
     "en": "• `#suggestions` - Post in the suggestions channel and the bot "
           "publishes your idea with votes.\n"
           "• `/recordatorio` - Set a reminder (10m, 2h, 1d).\n"
           "• `/sorteo` - Join giveaways with the 🎉 button.\n"
-          "• `/subasta` - Bid on items in staff auctions."},
+          "• `/subasta` - Bid on items in staff auctions.\n"
+          "• `/cumple` - Register your birthday to get a shout-out.\n"
+          "• `/afk` - Set AFK status with an optional message.\n"
+          "• `/topmascotas` - Server's top pets leaderboard.\n"
+          "• `#confessions` - Write there and the bot posts it anonymously."},
 "help.progress": {"es": "🏆 Logros y Misiones", "en": "🏆 Achievements & Missions"},
 "help.progress_cmds": {
     "es": "• `/achievements` - Consulta tu lista de logros y estado.\n"
@@ -965,3 +975,230 @@ STRINGS.update({
 
 })
 
+
+
+# ==========================================================================
+# NUEVAS FEATURES: moderación, social, pesca, boss, multi-staff
+# ==========================================================================
+
+STRINGS.update({
+
+# ---------- moderación ----------
+"mod.no_perms": {
+    "es": "❌ No tienes permisos para usar este comando.",
+    "en": "❌ You don't have permission to use this command."},
+"mod.cant_target_self": {
+    "es": "❌ No puedes usar este comando contigo mismo.",
+    "en": "❌ You can't use this command on yourself."},
+"mod.cant_target_bot": {
+    "es": "❌ No puedo aplicar esta acción (permisos o jerarquía).",
+    "en": "❌ I can't apply this action (permissions or role hierarchy)."},
+"mod.warn_done": {
+    "es": "⚠️ {user} ha sido advertido.\n**Razón:** {reason}\n"
+          "**Advertencias totales:** {count}",
+    "en": "⚠️ {user} has been warned.\n**Reason:** {reason}\n"
+          "**Total warnings:** {count}"},
+"mod.warns_title": {
+    "es": "⚠️ Advertencias de {user}", "en": "⚠️ Warnings for {user}"},
+"mod.warns_empty": {
+    "es": "Este usuario no tiene advertencias. ✅",
+    "en": "This user has no warnings. ✅"},
+"mod.warns_entry": {
+    "es": "**#{id}** — {reason}\nPor {mod} • {date}",
+    "en": "**#{id}** — {reason}\nBy {mod} • {date}"},
+"mod.warns_cleared": {
+    "es": "✅ Advertencias de {user} eliminadas.",
+    "en": "✅ Warnings for {user} cleared."},
+"mod.mute_done": {
+    "es": "🔇 {user} ha sido silenciado por {minutes} minutos.\n"
+          "**Razón:** {reason}",
+    "en": "🔇 {user} has been timed out for {minutes} minutes.\n"
+          "**Reason:** {reason}"},
+"mod.mute_failed": {
+    "es": "❌ No pude silenciar a ese usuario (jerarquía de roles).",
+    "en": "❌ Couldn't time out that user (role hierarchy)."},
+"mod.kick_done": {
+    "es": "👢 {user} ha sido expulsado.\n**Razón:** {reason}",
+    "en": "👢 {user} has been kicked.\n**Reason:** {reason}"},
+"mod.kick_failed": {
+    "es": "❌ No pude expulsar a ese usuario (jerarquía de roles).",
+    "en": "❌ Couldn't kick that user (role hierarchy)."},
+"mod.ban_done": {
+    "es": "🔨 {user} ha sido baneado.\n**Razón:** {reason}",
+    "en": "🔨 {user} has been banned.\n**Reason:** {reason}"},
+"mod.ban_failed": {
+    "es": "❌ No pude banear a ese usuario (jerarquía de roles).",
+    "en": "❌ Couldn't ban that user (role hierarchy)."},
+"mod.purge_done": {
+    "es": "🧹 {n} mensajes eliminados.",
+    "en": "🧹 {n} messages deleted."},
+"mod.purge_fail": {
+    "es": "❌ No pude borrar mensajes (permiso Manage Messages).",
+    "en": "❌ Couldn't delete messages (Manage Messages permission)."},
+
+# ---------- automod ----------
+"automod.badword": {
+    "es": "⚠️ {user}, ese mensaje contiene lenguaje no permitido.",
+    "en": "⚠️ {user}, that message contains disallowed language."},
+"automod.link": {
+    "es": "⚠️ {user}, los enlaces no están permitidos aquí.",
+    "en": "⚠️ {user}, links aren't allowed here."},
+"automod.spam": {
+    "es": "🔇 {user} fue silenciado {minutes} min por spam.",
+    "en": "🔇 {user} was timed out {minutes} min for spam."},
+"automod.caps": {
+    "es": "⚠️ {user}, por favor no uses tantas mayúsculas.",
+    "en": "⚠️ {user}, please don't use so many caps."},
+
+# ---------- confesiones ----------
+"conf.title": {
+    "es": "🕊️ Confesión #{n}", "en": "🕊️ Confession #{n}"},
+"conf.footer": {
+    "es": "Escríbela aquí y el bot la publica anónima",
+    "en": "Write it here and the bot posts it anonymously"},
+"conf.too_long": {
+    "es": "❌ La confesión es demasiado larga (máx 1500 caracteres).",
+    "en": "❌ Confession too long (max 1500 characters)."},
+
+# ---------- cumpleaños ----------
+"cumple.set": {
+    "es": "🎂 Tu cumpleaños quedó registrado: **{day}/{month}**.\n"
+          "¡Ese día te felicitaremos! 🎉",
+    "en": "🎂 Your birthday was saved: **{month}/{day}**.\n"
+          "We'll celebrate you that day! 🎉"},
+"cumple.invalid": {
+    "es": "❌ Fecha inválida. Usa: `/cumple mes día` (ej: `/cumple 3 15`).",
+    "en": "❌ Invalid date. Use: `/cumple month day` (e.g. `/cumple 3 15`)."},
+"cumple.announce": {
+    "es": "🎂🎉 ¡Hoy es el cumpleaños de {users}! ¡Felicidades! 🥳",
+    "en": "🎂🎉 Today is {users}'s birthday! Happy birthday! 🥳"},
+"cumple.next": {
+    "es": "🎂 Próximos cumpleaños", "en": "🎂 Upcoming birthdays"},
+"cumple.list_empty": {
+    "es": "Nadie ha registrado su cumpleaños aún. Usa `/cumple`.",
+    "en": "Nobody registered a birthday yet. Use `/cumple`."},
+
+# ---------- QOTD ----------
+"qotd.title": {"es": "💬 Pregunta del día", "en": "💬 Question of the day"},
+"qotd.footer": {
+    "es": "¡Responde abajo y comparte tu opinión! 👇",
+    "en": "Reply below and share your thoughts! 👇"},
+
+# ---------- AFK ----------
+"afk.set": {
+    "es": "😴 {user} ahora está AFK{reason}",
+    "en": "😴 {user} is now AFK{reason}"},
+"afk.back": {
+    "es": "👋 ¡Bienvenido de vuelta, {user}! Ya no estás AFK.",
+    "en": "👋 Welcome back, {user}! You're no longer AFK."},
+"afk.mention": {
+    "es": "😴 **{user}** está AFK{reason} (desde hace {time})",
+    "en": "😴 **{user}** is AFK{reason} (for {time} now)"},
+"afk.reason_fmt": {"es": ": {r}", "en": ": {r}"},
+
+# ---------- comandos personalizados ----------
+"ccmd.added": {
+    "es": "✅ Comando `!{name}` creado.",
+    "en": "✅ Command `!{name}` created."},
+"ccmd.removed": {
+    "es": "✅ Comando `!{name}` eliminado.",
+    "en": "✅ Command `!{name}` removed."},
+"ccmd.not_found": {
+    "es": "❌ No existe el comando `!{name}`.",
+    "en": "❌ Command `!{name}` doesn't exist."},
+"ccmd.list_title": {
+    "es": "📜 Comandos personalizados", "en": "📜 Custom commands"},
+"ccmd.list_empty": {
+    "es": "No hay comandos personalizados aún.",
+    "en": "No custom commands yet."},
+"ccmd.name_invalid": {
+    "es": "❌ Nombre inválido (solo letras, números y `-_`, máx 30).",
+    "en": "❌ Invalid name (letters, numbers, `-_` only, max 30)."},
+
+# ---------- evento / recordatorio de server ----------
+"event.created": {
+    "es": "📅 Evento programado: **{text}**\n"
+          "Se anunciará en {channel} {time}.",
+    "en": "📅 Event scheduled: **{text}**\n"
+          "It will be announced in {channel} {time}."},
+"event.invalid_time": {
+    "es": "❌ Tiempo inválido. Usa formato como `10m`, `2h`, `3d`.",
+    "en": "❌ Invalid time. Use formats like `10m`, `2h`, `3d`."},
+"event.announce": {
+    "es": "📅 **Recordatorio de evento**\n{text}",
+    "en": "📅 **Event reminder**\n{text}"},
+
+# ---------- pescar ----------
+"fish.cooldown": {
+    "es": "⏳ Ya pescaste hace poco. Vuelve en **{time}**.",
+    "en": "⏳ You fished recently. Come back in **{time}**."},
+"fish.casting": {
+    "es": "🎣 Lanzando la caña...", "en": "🎣 Casting the line..."},
+"fish.bite": {
+    "es": "🎣 ¡Algo picó!", "en": "🎣 Something's biting!"},
+"fish.caught": {
+    "es": "# 🎣 ¡Pescaste: {name}!\n+{hearts} 💕",
+    "en": "# 🎣 You caught: {name}!\n+{hearts} 💕"},
+"fish.nothing": {
+    "es": "# 🎣 {name}\n+{hearts} 💕",
+    "en": "# 🎣 {name}\n+{hearts} 💕"},
+
+# ---------- boss semanal ----------
+"boss.title": {"es": "👹 Boss Semanal: {name}",
+               "en": "👹 Weekly Boss: {name}"},
+"boss.status": {
+    "es": "**HP:** {hp} / {max_hp}\n"
+          "¡Gana batallas en `/jugar` → Batalla para dañarlo!",
+    "en": "**HP:** {hp} / {max_hp}\n"
+          "Win battles in `/jugar` → Battle to damage it!"},
+"boss.damaged": {
+    "es": "👹 Golpeaste al boss por **{damage}** de daño "
+          "({hp}/{max_hp} HP restante)",
+    "en": "👹 You hit the boss for **{damage}** damage "
+          "({hp}/{max_hp} HP left)"},
+"boss.dead": {
+    "es": "# 🎉 ¡El boss **{name}** ha sido derrotado!\n"
+          "El pozo de **{pool}** 💕 fue repartido entre {n} guerreros.",
+    "en": "# 🎉 The boss **{name}** has been defeated!\n"
+          "The pool of **{pool}** 💕 was shared between {n} warriors."},
+"boss.no_active": {
+    "es": "No hay boss activo esta semana aún.",
+    "en": "There's no active boss this week yet."},
+"boss.log_spawn": {
+    "es": "👹 Boss semanal creado: {name} ({hp} HP)",
+    "en": "👹 Weekly boss spawned: {name} ({hp} HP)"},
+
+# ---------- racha login Moonveil ----------
+"mv.login_streak": {
+    "es": "🔥 Racha Moonveil: **{days} día(s)** · +{hearts} 💕",
+    "en": "🔥 Moonveil streak: **{days} day(s)** · +{hearts} 💕"},
+
+# ---------- top mascotas ----------
+"top.pets_title": {
+    "es": "🏆 Top Mascotas del servidor", "en": "🏆 Server Top Pets"},
+"top.pets_empty": {
+    "es": "Aún nadie tiene mascotas. Usa `/jugar` para adoptar.",
+    "en": "Nobody has pets yet. Use `/jugar` to adopt."},
+"top.pets_entry": {
+    "es": "{rank}. {emoji} **{species}**{shiny} — {user}\n"
+          "    Etapa {stage} · {xp} XP",
+    "en": "{rank}. {emoji} **{species}**{shiny} — {user}\n"
+          "    Stage {stage} · {xp} XP"},
+
+# ---------- setup multi-staff ----------
+"setup.staff_added": {
+    "es": "✅ Rol staff añadido: {role}",
+    "en": "✅ Staff role added: {role}"},
+"setup.staff_removed": {
+    "es": "✅ Rol staff eliminado: {role}",
+    "en": "✅ Staff role removed: {role}"},
+"setup.staff_roles": {"es": "Roles staff", "en": "Staff roles"},
+"setup.staff_none": {"es": "Ninguno", "en": "None"},
+"setup.confession_set": {
+    "es": "✅ Canal de confesiones: {channel}",
+    "en": "✅ Confession channel: {channel}"},
+"setup.qotd_set": {
+    "es": "✅ Canal de QOTD: {channel}",
+    "en": "✅ QOTD channel: {channel}"},
+
+})

@@ -365,3 +365,76 @@ def get_achievement(ach_id: str):
 
 def get_mission(mis_id: str):
     return next((m for m in MISSIONS if m["id"] == mis_id), None)
+
+
+# ---------- automod ----------
+
+BAD_WORDS = [
+    "puta", "puto", "mierda", "cabron", "pendejo", "imbecil",
+    "fuck", "shit", "bitch", "asshole", "retard", "nigga", "whore",
+]
+SPAM_MESSAGES = 6          # mensajes en la ventana
+SPAM_WINDOW_SECONDS = 5    # ventana de tiempo para spam
+CAPS_RATIO = 0.7           # ratio de mayúsculas para activar automod
+CAPS_MIN_LEN = 10          # longitud mínima del mensaje
+AUTOMOD_TIMEOUT_MIN = 5    # timeout por spam
+
+# ---------- pescar ----------
+
+FISH_COOLDOWN_MIN = 60
+FISH_REWARDS = [
+    {"name_es": "Nada... solo agua", "name_en": "Nothing... just water",
+     "hearts": (0, 5), "chance": 20},
+    {"name_es": "Pez común", "name_en": "Common fish",
+     "hearts": (15, 30), "chance": 35},
+    {"name_es": "Pez raro", "name_en": "Rare fish",
+     "hearts": (40, 70), "chance": 20},
+    {"name_es": "Pulpo", "name_en": "Octopus",
+     "hearts": (80, 120), "chance": 12},
+    {"name_es": "Cofre del tesoro", "name_en": "Treasure chest",
+     "hearts": (150, 250), "chance": 8},
+    {"name_es": "Pez dorado", "name_en": "Golden fish",
+     "hearts": (300, 400), "chance": 5},
+]
+
+# ---------- boss semanal ----------
+
+BOSS_HP = 5000
+BOSS_REWARD_POOL = 5000
+BOSS_DAMAGE_FACTOR = 1       # hearts ganados = hearts * factor
+BOSS_NAMES = {
+    "es": "El Guardián Lunar", "en": "The Lunar Guardian"}
+LOGIN_STREAK_REWARDS = {1: 25, 2: 50, 3: 75, 4: 100, 5: 150, 6: 200, 7: 300}
+
+# ---------- QOTD (es, en) ----------
+
+QOTD = [
+    ("¿Cuál es tu mascota favorita de Adopt Me?",
+     "What is your favorite Adopt Me pet?"),
+    ("Si pudieras viajar a cualquier lugar, ¿a dónde irías?",
+     "If you could travel anywhere, where would you go?"),
+    ("¿Qué superpoder elegirías y por qué?",
+     "What superpower would you choose and why?"),
+    ("¿Cuál fue el último juego que jugaste?",
+     "What was the last game you played?"),
+    ("¿Pizza o tacos?",
+     "Pizza or tacos?"),
+    ("¿Qué emoji usas más?",
+     "Which emoji do you use the most?"),
+    ("¿Cuál es tu comida favorita?",
+     "What is your favorite food?"),
+    ("¿Perros o gatos?",
+     "Dogs or cats?"),
+    ("¿Qué serie o película recomendarías?",
+     "What show or movie would you recommend?"),
+    ("¿Cuál es tu meta para esta semana?",
+     "What is your goal for this week?"),
+    ("¿Qué harías con un millón de Hearts?",
+     "What would you do with a million Hearts?"),
+    ("¿Cuál es tu canción favorita ahora mismo?",
+     "What is your favorite song right now?"),
+    ("¿Qué mascota legendaria te falta?",
+     "Which legendary pet are you missing?"),
+    ("¿Madrugador o noctámbulo?",
+     "Early bird or night owl?"),
+]
