@@ -180,6 +180,13 @@ class SetupCog(commands.Cog):
         await self._set_channel(interaction, "suggestion_channel_en_id", canal,
                                 "Canal de sugerencias (inglés)")
 
+    @setup.command(name="canal-trades",
+                   description="Canal donde el staff revisa los trades de Adopt Me.")
+    async def canal_trades(self, interaction: discord.Interaction,
+                           canal: discord.TextChannel):
+        await self._set_channel(interaction, "trade_channel_id", canal,
+                                "Canal de trades")
+
     @setup.command(name="canal-confesiones",
                    description="Canal donde los mensajes se publican como confesiones anónimas.")
     async def canal_confesiones(self, interaction: discord.Interaction,
@@ -232,7 +239,8 @@ class SetupCog(commands.Cog):
                 f"🛒 Compras: {ch('buy_channel_id')}\n"
                 f"🏆 Logros: {ch('ach_channel_id')}\n"
                 f"📜 Misiones: {ch('mis_channel_id')}\n"
-                f"📋 Logs: {ch('log_channel_id')}"
+                f"� Trades: {ch('trade_channel_id')}\n"
+                f"�📋 Logs: {ch('log_channel_id')}"
             ), inline=False)
         embed.add_field(
             name="🎉 Comunidad",

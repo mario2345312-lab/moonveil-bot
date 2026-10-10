@@ -438,3 +438,7 @@ QOTD = [
     ("¿Madrugador o noctámbulo?",
      "Early bird or night owl?"),
 ]
+
+# ---------- trades ----------
+
+TRADE_REWARD = 100           # Hearts por trade aprobado por el staff

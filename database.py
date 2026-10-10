@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS guild_settings (
     qotd_channel_id    INTEGER,
     confession_count   INTEGER NOT NULL DEFAULT 0,
     qotd_index         INTEGER NOT NULL DEFAULT 0,
-    qotd_last          TEXT
+    qotd_last          TEXT,
+    trade_channel_id   INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS claimed_achievements (
@@ -267,6 +268,7 @@ class Database:
             "confession_count": "INTEGER NOT NULL DEFAULT 0",
             "qotd_index": "INTEGER NOT NULL DEFAULT 0",
             "qotd_last": "TEXT",
+            "trade_channel_id": "INTEGER",
         }.items():
             if col not in gcols:
                 await self.conn.execute(
@@ -451,6 +453,7 @@ class Database:
             "suggestion_channel_en_id",
             "lang_es_role_id", "lang_en_role_id",
             "confession_channel_id", "qotd_channel_id", "qotd_last",
+            "trade_channel_id",
         }
         await self.conn.execute(
             "INSERT INTO guild_settings (guild_id) VALUES (?) "

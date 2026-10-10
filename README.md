@@ -56,6 +56,7 @@ Con permiso de *Manage Server*, usa `/setup`:
 | `/setup canal-sugerencias #canal` | Canal de sugerencias en español (mensajes → votos) |
 | `/setup canal-sugerencias-en #canal` | Canal de sugerencias en inglés (mensajes → votos) |
 | `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión numerada) |
+| `/setup canal-trades #canal` | Revisión del staff de `/trade` |
 | `/setup canal-qotd #canal` | Canal de la pregunta del día (diaria, bilingüe) |
 | `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión sin autor) |
 | `/setup canal-qotd #canal` | Canal donde el bot publica la pregunta del día |
@@ -80,6 +81,7 @@ Cubre: economía, juegos, Moonveil, tienda, progresión, sorteos/subastas, DMs d
 - `/jugar` — **Moonveil**: adopta mascotas de Adopt Me, explóralas, batalla contra salvajes, combina Neon y consigue ✨ Shiny (incluye racha de login diario)
 - `/boss`, `/topmascotas` — boss semanal comunitario (las batallas lo dañan y reparten pozo) y ranking de mascotas
 - `/cumple`, `/afk` — cumpleaños con felicitación diaria y estado AFK con avisos
+- `/trade` — envía captura de un trade en Adopt Me; el staff lo aprueba y ganas Hearts
 - `/flip`, `/dice`, `/slots`, `/rps`, `/guess` — minijuegos con animación
 - `/blackjack`, `/ruleta`, `/trivia` — más juegos de apuestas
 - `/loteria` — tickets para un pozo acumulado de Hearts

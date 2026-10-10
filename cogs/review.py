@@ -20,12 +20,14 @@ KIND_CHANNEL_KEY = {
     "purchase": "buy_channel_id",
     "achievement": "ach_channel_id",
     "mission": "mis_channel_id",
+    "trade": "trade_channel_id",
 }
 
 KIND_LABEL = {
     "purchase": "🛒 Compra",
     "achievement": "🏆 Reclamo de logro",
     "mission": "📜 Reclamo de misión",
+    "trade": "🔄 Trade",
 }
 
 
@@ -372,6 +374,12 @@ class ReviewView(discord.ui.View):
                 guild.id, member.id))[mission["id"]]
             return True, t(lang, "rev.mis_progress", name=mission["name"],
                            p=row["progress"], n=mission["required_count"])
+
+        if kind == "trade":
+            await self.bot.db.add_hearts(guild.id, member.id,
+                                         config.TRADE_REWARD)
+            return True, t(lang, "rev.trade_done",
+                           hearts=config.TRADE_REWARD, heart=config.HEART)
 
         if kind == "achievement":
             ach = config.get_achievement(sub["ref_id"])

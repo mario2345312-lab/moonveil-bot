@@ -270,6 +270,35 @@ class ProgressionCog(commands.Cog):
         ][:25]
 
 
+    # ---------- /trade (recompensa por tradear en Adopt Me) ----------
+
+    @app_commands.command(
+        name="trade",
+        description="Envía la captura de un trade en Adopt Me para ganar Hearts.")
+    @app_commands.describe(
+        descripcion="Qué tradaste (ej: 'Di mi Frost por un Bat Dragon')",
+        captura="Captura de pantalla del trade")
+    @app_commands.guild_only()
+    async def trade(self, interaction: discord.Interaction,
+                    descripcion: str, captura: discord.Attachment):
+        await interaction.response.defer(ephemeral=True)
+        lang = await user_lang(self.bot, interaction)
+        if not _is_image(captura):
+            return await interaction.followup.send(
+                t(lang, "prog.needs_image"), ephemeral=True)
+
+        sub_id = await submit_for_review(
+            self.bot, interaction.guild, interaction.user,
+            kind="trade", ref_id="trade",
+            title=t(lang, "trade.title"),
+            description=f"*{descripcion[:500]}*\n"
+                        f"Recompensa: {config.TRADE_REWARD} {config.HEART}",
+            proof_url=captura.url, payload=None,
+            origin_channel_id=interaction.channel_id)
+        await _after_proof_submit(interaction, sub_id, lang,
+                                  t(lang, "trade.title"), "canal-trades")
+
+
 async def _after_proof_submit(interaction: discord.Interaction,
                               sub_id: int | None, lang: str, label: str,
                               setup_cmd: str):

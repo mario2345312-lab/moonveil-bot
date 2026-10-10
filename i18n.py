@@ -499,6 +499,7 @@ STRINGS.update({
           "• `/cumple` - Registra tu cumpleaños para recibir felicitación.\n"
           "• `/afk` - Marca AFK con un mensaje opcional.\n"
           "• `/topmascotas` - Ranking de las mejores mascotas del server.\n"
+          "• `/trade` - Envía captura de un trade en Adopt Me por Hearts.\n"
           "• `#confesiones` - Escribe allí y el bot lo publica anónimo.",
     "en": "• `#suggestions` - Post in the suggestions channel and the bot "
           "publishes your idea with votes.\n"
@@ -508,6 +509,7 @@ STRINGS.update({
           "• `/cumple` - Register your birthday to get a shout-out.\n"
           "• `/afk` - Set AFK status with an optional message.\n"
           "• `/topmascotas` - Server's top pets leaderboard.\n"
+          "• `/trade` - Submit an Adopt Me trade screenshot for Hearts.\n"
           "• `#confessions` - Write there and the bot posts it anonymously."},
 "help.progress": {"es": "🏆 Logros y Misiones", "en": "🏆 Achievements & Missions"},
 "help.progress_cmds": {
@@ -1184,6 +1186,13 @@ STRINGS.update({
           "    Etapa {stage} · {xp} XP",
     "en": "{rank}. {emoji} **{species}**{shiny} — {user}\n"
           "    Stage {stage} · {xp} XP"},
+
+# ---------- trades ----------
+"trade.title": {
+    "es": "🔄 Trade en Adopt Me", "en": "🔄 Adopt Me trade"},
+"rev.trade_done": {
+    "es": "Trade aprobado — +{hearts} {heart}",
+    "en": "Trade approved — +{hearts} {heart}"},
 
 # ---------- setup multi-staff ----------
 "setup.staff_added": {
