@@ -16,6 +16,11 @@ HEART = "💕"
 # Pueden aprobar solicitudes y usar /hearts-admin aunque no tengan rol staff.
 OWNER_IDS = {410535496641675265}
 
+# Servidor donde se sincronizan los comandos al arrancar (sync instantáneo).
+# Si es None, se sincronizan globalmente (tardan hasta 1h).
+# También se puede sobreescribir con la variable de entorno GUILD_ID.
+GUILD_ID = 1551339041482346607
+
 # --- Economía ---
 DAILY_BASE = 100                # hearts base del /daily
 DAILY_STREAK_BONUS = 10         # hearts extra por cada día de racha

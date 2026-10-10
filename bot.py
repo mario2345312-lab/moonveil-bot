@@ -58,7 +58,8 @@ class MoonveilBot(commands.Bot):
         for cog in COGS:
             await self.load_extension(cog)
 
-        guild_id = os.getenv("GUILD_ID")
+        guild_id = os.getenv("GUILD_ID") or config.GUILD_ID
+        guild_id = int(guild_id) if guild_id else None
         if guild_id:
             guild = discord.Object(id=int(guild_id))
             self.tree.copy_global_to(guild=guild)
