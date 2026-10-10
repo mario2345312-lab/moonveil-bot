@@ -906,8 +906,9 @@ class PetsCog(commands.Cog):
         description="Abre Moonveil: adopta mascotas, explóralas y haz Neon.")
     @app_commands.guild_only()
     async def jugar(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         lang = await user_lang(self.bot, interaction)
-        await interaction.response.send_message(
+        await interaction.edit_original_response(
             embed=main_embed(interaction.user, lang),
             view=MoonveilView(self.bot, lang))
 

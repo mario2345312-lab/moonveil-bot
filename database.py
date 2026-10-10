@@ -198,6 +198,12 @@ class Database:
             if col not in pcols:
                 await self.conn.execute(
                     f"ALTER TABLE pets ADD COLUMN {col} {ddl}")
+        cur = await self.conn.execute("PRAGMA table_info(auctions)")
+        acols = {r["name"] for r in await cur.fetchall()}
+        if acols and "min_bid" not in acols:
+            await self.conn.execute(
+                "ALTER TABLE auctions ADD COLUMN min_bid "
+                "INTEGER NOT NULL DEFAULT 0")
         await self.conn.commit()
 
     async def close(self):
