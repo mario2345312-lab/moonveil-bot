@@ -153,8 +153,8 @@ STRINGS.update({
 "daily.streak_value": {"es": "**{n} días**", "en": "**{n} days**"},
 "daily.breakdown": {"es": "🎁 Desglose", "en": "🎁 Breakdown"},
 "daily.breakdown_val": {
-    "es": "{base} base + {bonus}×{streak} racha",
-    "en": "{base} base + {bonus}×{streak} streak"},
+    "es": "{base} base + {bonus}×{streak} racha{vip}",
+    "en": "{base} base + {bonus}×{streak} streak{vip}"},
 "daily.footer": {
     "es": "💡 Vuelve mañana para que tu racha siga creciendo",
     "en": "💡 Come back tomorrow to keep your streak growing"},
@@ -197,8 +197,8 @@ STRINGS.update({
           "walked the neighborhood pets 🦮"},
 "work.title": {"es": "💼 ¡A trabajar!", "en": "💼 Time to work!"},
 "work.footer": {
-    "es": "Vuelve en {h}h por más",
-    "en": "Come back in {h}h for more"},
+    "es": "Vuelve en {h}h por más{vip}",
+    "en": "Come back in {h}h for more{vip}"},
 
 # ---------- /rob ----------
 "rob.invalid": {
@@ -1191,8 +1191,34 @@ STRINGS.update({
 "trade.title": {
     "es": "🔄 Trade en Adopt Me", "en": "🔄 Adopt Me trade"},
 "rev.trade_done": {
-    "es": "Trade aprobado — +{hearts} {heart}",
-    "en": "Trade approved — +{hearts} {heart}"},
+    "es": "Trade aprobado — +{hearts} {heart}{vip}",
+    "en": "Trade approved — +{hearts} {heart}{vip}"},
+
+# ---------- VIP ----------
+"vip.bonus_desc": {
+    "es": "💎 Los VIP reciben +50% Hearts y cooldowns a la mitad.",
+    "en": "💎 VIPs get +50% Hearts and half cooldowns."},
+"vip.daily_bonus": {
+    "es": "+{hearts}💕 {bonus}",
+    "en": "+{hearts}💕 {bonus}"},
+"vip.cooldown_short": {
+    "es": "Cooldown: {h}h 💎",
+    "en": "Cooldown: {h}h 💎"},
+"fish.limit_reached": {
+    "es": "⏳ Ya usaste tus {limit} pescas de hoy. Vuelve mañana.",
+    "en": "⏳ You used your {limit} fishing trips today. Come back tomorrow."},
+"fish.limit_left": {
+    "es": "Quedan {left} pescas hoy 💎",
+    "en": "{left} trips left today 💎"},
+"profile.vip_title": {
+    "es": "Perfil VIP de {name}",
+    "en": "VIP Profile of {name}"},
+"profile.vip_footer": {
+    "es": "👑 Exclusividad Premium",
+    "en": "👑 Premium Exclusivity"},
+"profile.vip_stats": {
+    "es": "🌟 Estadísticas VIP",
+    "en": "🌟 VIP Stats"},
 
 # ---------- setup multi-staff ----------
 "setup.staff_added": {

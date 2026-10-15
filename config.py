@@ -442,3 +442,12 @@ QOTD = [
 # ---------- trades ----------
 
 TRADE_REWARD = 100           # Hearts por trade aprobado por el staff
+
+# ---------- VIP benefits ----------
+
+VIP_HEARTS_MULT = 1.5       # multiplicador de Hearts para VIP (+50%)
+VIP_COOLDOWN_DIV = 2         # divisor de cooldowns para VIP (a la mitad)
+FISH_DAILY_LIMIT = 10       # usos diarios de /pescar normales
+FISH_DAILY_LIMIT_VIP = 15   # usos diarios de /pescar VIP
+VIP_COLOR = 0xFFD700        # dorado
+VIP_PURPLE = 0x9B59B6      # púrpura

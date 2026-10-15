@@ -16,6 +16,7 @@ from discord.ext import commands
 from discord.utils import utcnow
 
 import config
+from cogs.review import is_vip
 from i18n import t, user_lang
 from logging_utils import send_log
 
@@ -71,12 +72,13 @@ def pet_tags(pet) -> str:
     return tags
 
 
-def explore_rewards(pet) -> tuple[int, int, bool]:
+def explore_rewards(pet, vip_mult: float = 1.0) -> tuple[int, int, bool]:
     mult = config.RARITY_INFO[pet["rarity"]]["mult"]
     if pet["neon"]:
         mult *= config.NEON_MULT
     if pet["shiny"]:
         mult *= config.SHINY_MULT
+    mult *= vip_mult
     xp = round(random.randint(*config.EXPLORE_XP) * mult)
     hearts = round(random.randint(*config.EXPLORE_HEARTS) * mult)
     bonus = random.random() < config.EXPLORE_BONUS_CHANCE
@@ -549,6 +551,9 @@ class ExploreSelect(discord.ui.Select):
             return await interaction.followup.send(
                 t(lang, "mv.pet_gone"), ephemeral=True)
 
+        s = await db.get_settings(interaction.guild.id)
+        vip_mult = config.VIP_HEARTS_MULT if is_vip(interaction.user, s) else 1.0
+
         now = utcnow()
         embed = discord.Embed(color=config.EMBED_COLOR)
         embed.set_footer(text=f"Moonveil • owner:{interaction.user.id}")
@@ -565,7 +570,7 @@ class ExploreSelect(discord.ui.Select):
                 return await interaction.edit_original_response(
                     embed=embed, view=BackOnlyView(self.bot))
 
-            xp, hearts, bonus = explore_rewards(pet)
+            xp, hearts, bonus = explore_rewards(pet, vip_mult)
             new_xp = pet["xp"] + xp
             new_stage = config.stage_index(new_xp)
             await db.finish_explore(pet["id"], xp, new_stage)
@@ -773,11 +778,14 @@ class BattleSelect(discord.ui.Select):
         if gana:
             await db.bump_stat(interaction.guild.id, interaction.user.id,
                                "mv_battle_wins")
+            s = await db.get_settings(interaction.guild.id)
+            vip_mult = config.VIP_HEARTS_MULT if is_vip(interaction.user, s) else 1.0
             mult = config.RARITY_INFO[pet["rarity"]]["mult"]
             if pet["neon"]:
                 mult *= config.NEON_MULT
             if pet["shiny"]:
                 mult *= config.SHINY_MULT
+            mult *= vip_mult
             hearts = round(random.randint(*config.BATTLE_HEARTS) * mult)
             await db.add_hearts(interaction.guild.id, interaction.user.id,
                                 hearts)

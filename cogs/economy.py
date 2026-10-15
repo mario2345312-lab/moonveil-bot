@@ -9,6 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import config
+from cogs.review import is_vip
 from i18n import t, user_lang
 
 
@@ -56,14 +57,44 @@ class EconomyCog(commands.Cog):
         s = await db.get_settings(guild.id)
         vip = guild.get_role(s.get("vip_role_id") or 0) or \
             discord.utils.get(guild.roles, name="VIP")
+        is_v = False
         if vip and vip in target.roles:
             insignias.append(f"💎 {vip.name}")
+            is_v = True
+            # registrar fecha VIP si no existe
+            if not u["vip_since"]:
+                await db.set_vip_since(guild.id, target.id,
+                                        discord.utils.utcnow().isoformat())
         if u["custom_role_id"]:
             cr = guild.get_role(u["custom_role_id"])
             if cr:
                 insignias.append(f"🎨 {cr.name}")
 
-        embed = discord.Embed(color=config.EMBED_COLOR)
+        # perfil VIP premium
+        if is_v:
+            embed = discord.Embed(color=config.VIP_COLOR)
+            embed.set_image(url=target.display_avatar.url)
+            embed.set_author(
+                name=f"💎 {t(lang, 'profile.vip_title', name=target.display_name)}",
+                icon_url=target.display_avatar.url)
+            embed.description = (
+                f"### 💰 {u['hearts']:,} {config.HEART} 💎\n"
+                + t(lang, "profile.streak", n=u["streak"],
+                    best=u["best_streak"])
+            )
+            if u["vip_since"]:
+                embed.description += f"\n✨ **VIP desde** <t:{int(datetime.fromisoformat(u['vip_since']).timestamp())}:D>"
+        else:
+            embed = discord.Embed(color=config.EMBED_COLOR)
+            embed.set_author(name=t(lang, "profile.title",
+                                    name=target.display_name),
+                             icon_url=target.display_avatar.url)
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embed.description = (
+                f"## 💰 {u['hearts']:,} {config.HEART}\n"
+                + t(lang, "profile.streak", n=u["streak"],
+                    best=u["best_streak"])
+            )
         embed.set_author(name=t(lang, "profile.title",
                                 name=target.display_name),
                          icon_url=target.display_avatar.url)
@@ -100,6 +131,16 @@ class EconomyCog(commands.Cog):
                 f"{t(lang, 'profile.purchases')}: **{u['items_bought']}**"
             ), inline=True)
 
+        if is_v:
+            fish_left = config.FISH_DAILY_LIMIT_VIP - u["fish_count"]
+            embed.add_field(
+                name=f"✨ {t(lang, 'profile.vip_stats')}",
+                value=(
+                    f"🎣 Pesca hoy: **{u['fish_count']}/{config.FISH_DAILY_LIMIT_VIP}**\n"
+                    f"💎 Bonus: **+{int((config.VIP_HEARTS_MULT - 1) * 100)}%**"
+                ),
+                inline=False)
+
         if u["dream_pet"]:
             embed.description += (f"\n\n🐣 Dream Pet: **{u['dream_pet']}**")
         elif target.id == interaction.user.id:
@@ -115,7 +156,11 @@ class EconomyCog(commands.Cog):
                         value="\n".join(fechas), inline=False)
 
         rank = await db.user_rank(guild.id, target.id)
-        embed.set_footer(text=t(lang, "profile.rank_footer", rank=rank))
+        if is_v:
+            embed.set_footer(
+                text=f"{t(lang, 'profile.vip_footer')} • {t(lang, 'profile.rank_footer', rank=rank)}")
+        else:
+            embed.set_footer(text=t(lang, "profile.rank_footer", rank=rank))
         embed.timestamp = discord.utils.utcnow()
         await interaction.followup.send(embed=embed)
 
@@ -185,10 +230,12 @@ class EconomyCog(commands.Cog):
         await interaction.response.defer()
         lang = await user_lang(self.bot, interaction)
         today = date.today()
+        s = await self.bot.db.get_settings(interaction.guild.id)
+        mult = config.VIP_HEARTS_MULT if is_vip(interaction.user, s) else 1.0
         result = await self.bot.db.claim_daily(
             interaction.guild.id, interaction.user.id,
             today.isoformat(), (today - timedelta(days=1)).isoformat(),
-            config.DAILY_BASE, config.DAILY_STREAK_BONUS)
+            config.DAILY_BASE, config.DAILY_STREAK_BONUS, mult)
 
         if result is None:
             embed = discord.Embed(
@@ -209,7 +256,8 @@ class EconomyCog(commands.Cog):
         embed.add_field(
             name=t(lang, "daily.breakdown"),
             value=t(lang, "daily.breakdown_val", base=config.DAILY_BASE,
-                    bonus=config.DAILY_STREAK_BONUS, streak=streak),
+                    bonus=config.DAILY_STREAK_BONUS, streak=streak,
+                    vip=f" x{config.VIP_HEARTS_MULT}" if mult > 1 else ""),
             inline=True)
         embed.set_footer(text=t(lang, "daily.footer"))
         embed.timestamp = discord.utils.utcnow()
@@ -278,14 +326,18 @@ class EconomyCog(commands.Cog):
         lang = await user_lang(self.bot, interaction)
         db = self.bot.db
         guild_id, user_id = interaction.guild.id, interaction.user.id
-        u = await db.get_user(guild_id, user_id)
+        s = await db.get_settings(guild_id)
+        is_v = is_vip(interaction.user, s)
+        cooldown = config.WORK_COOLDOWN_HOURS / config.VIP_COOLDOWN_DIV if is_v else config.WORK_COOLDOWN_HOURS
+        mult = config.VIP_HEARTS_MULT if is_v else 1.0
 
-        left = _cd_left(u["last_work"], config.WORK_COOLDOWN_HOURS)
+        u = await db.get_user(guild_id, user_id)
+        left = _cd_left(u["last_work"], cooldown)
         if left:
             return await interaction.followup.send(
                 t(lang, "work.tired", left=_fmt_cd(left)), ephemeral=True)
 
-        reward = random.randint(*config.WORK_REWARD)
+        reward = round(random.randint(*config.WORK_REWARD) * mult)
         await db.claim_work(guild_id, user_id,
                             discord.utils.utcnow().replace(tzinfo=None)
                             .isoformat(), reward)
@@ -297,7 +349,8 @@ class EconomyCog(commands.Cog):
                         f"# +{reward} {config.HEART}",
             color=config.COLOR_SUCCESS)
         embed.set_footer(
-            text=t(lang, "work.footer", h=config.WORK_COOLDOWN_HOURS))
+            text=t(lang, "work.footer", h=int(cooldown),
+                   vip=" 💎" if is_v else ""))
         embed.timestamp = discord.utils.utcnow()
         await interaction.followup.send(embed=embed)
 
@@ -317,8 +370,12 @@ class EconomyCog(commands.Cog):
             return await interaction.followup.send(
                 t(lang, "rob.invalid"), ephemeral=True)
 
+        s = await db.get_settings(guild.id)
+        is_v = is_vip(user, s)
+        cooldown = config.ROB_COOLDOWN_HOURS / config.VIP_COOLDOWN_DIV if is_v else config.ROB_COOLDOWN_HOURS
+
         u = await db.get_user(guild.id, user.id)
-        left = _cd_left(u["last_rob"], config.ROB_COOLDOWN_HOURS)
+        left = _cd_left(u["last_rob"], cooldown)
         if left:
             return await interaction.followup.send(
                 t(lang, "rob.rest", left=_fmt_cd(left)), ephemeral=True)
@@ -365,12 +422,22 @@ class EconomyCog(commands.Cog):
         lang = await user_lang(self.bot, interaction)
         db = self.bot.db
         guild_id, user_id = interaction.guild.id, interaction.user.id
-        u = await db.get_user(guild_id, user_id)
+        s = await db.get_settings(guild_id)
+        is_v = is_vip(interaction.user, s)
+        cooldown_h = config.FISH_COOLDOWN_MIN / 60 / config.VIP_COOLDOWN_DIV if is_v else config.FISH_COOLDOWN_MIN / 60
+        mult = config.VIP_HEARTS_MULT if is_v else 1.0
+        limit = config.FISH_DAILY_LIMIT_VIP if is_v else config.FISH_DAILY_LIMIT
 
-        left = _cd_left(u["last_fish"], config.FISH_COOLDOWN_MIN // 60 or 1)
+        u = await db.get_user(guild_id, user_id)
+        left = _cd_left(u["last_fish"], cooldown_h)
         if left:
             return await interaction.followup.send(
                 t(lang, "fish.cooldown", time=_fmt_cd(left)), ephemeral=True)
+
+        count = await db.get_fish_count(guild_id, user_id)
+        if count >= limit:
+            return await interaction.followup.send(
+                t(lang, "fish.limit_reached", limit=limit), ephemeral=True)
 
         await interaction.followup.send(t(lang, "fish.casting"))
         await asyncio.sleep(1.8)
@@ -385,7 +452,7 @@ class EconomyCog(commands.Cog):
             if roll <= acc:
                 catch = r
                 break
-        hearts = random.randint(*catch["hearts"])
+        hearts = round(random.randint(*catch["hearts"]) * mult)
         name = catch["name_en"] if lang == "en" else catch["name_es"]
 
         await db.set_last_fish(
@@ -393,9 +460,12 @@ class EconomyCog(commands.Cog):
             discord.utils.utcnow().replace(tzinfo=None).isoformat())
         if hearts:
             await db.add_hearts(guild_id, user_id, hearts)
+        new_count = await db.bump_fish_count(guild_id, user_id)
 
         await interaction.edit_original_response(
-            content=t(lang, "fish.caught", name=name, hearts=hearts))
+            content=t(lang, "fish.caught", name=name, hearts=hearts,
+                     left=limit - new_count,
+                     vip=" 💎" if is_v else ""))
 
 
 async def setup(bot):

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_fish       TEXT,
     mv_login_date   TEXT,
     mv_login_streak INTEGER NOT NULL DEFAULT 0,
+    fish_count      INTEGER NOT NULL DEFAULT 0,
+    vip_since       TEXT,
     PRIMARY KEY (guild_id, user_id)
 );
 
@@ -218,7 +220,7 @@ USER_COLS = (
     "dailies_claimed, flips_played, flips_won, items_bought, invites_count, "
     "custom_role_id, dream_pet, starter_claimed, last_work, last_rob, "
     "mv_explores, mv_battles, mv_battle_wins, mv_neons, lang, "
-    "last_fish, mv_login_date, mv_login_streak"
+    "last_fish, mv_login_date, mv_login_streak, fish_count, vip_since"
 )
 
 
@@ -251,6 +253,8 @@ class Database:
             "last_fish": "TEXT",
             "mv_login_date": "TEXT",
             "mv_login_streak": "INTEGER NOT NULL DEFAULT 0",
+            "fish_count": "INTEGER NOT NULL DEFAULT 0",
+            "vip_since": "TEXT",
         }.items():
             if col not in cols:
                 await self.conn.execute(
@@ -375,14 +379,15 @@ class Database:
         await self.conn.commit()
 
     async def claim_daily(self, guild_id: int, user_id: int, today: str,
-                          yesterday: str, base: int, bonus: int):
+                          yesterday: str, base: int, bonus: int,
+                          mult: float = 1.0):
         """Devuelve (reward, streak) o None si ya reclamó hoy."""
         user = await self.get_user(guild_id, user_id)
         if user["last_daily"] == today:
             return None
         streak = user["streak"] + 1 if user["last_daily"] == yesterday else 1
         best = max(streak, user["best_streak"])
-        reward = base + bonus * streak
+        reward = round((base + bonus * streak) * mult)
         await self.conn.execute(
             "UPDATE users SET hearts=hearts+?, total_earned=total_earned+?, "
             "last_daily=?, streak=?, best_streak=?, dailies_claimed=dailies_claimed+1 "
@@ -1170,6 +1175,36 @@ class Database:
 
     async def set_last_fish(self, guild_id: int, user_id: int, now_iso: str):
         await self.set_timestamp(guild_id, user_id, "last_fish", now_iso)
+
+    async def get_fish_count(self, guild_id: int, user_id: int) -> int:
+        u = await self.get_user(guild_id, user_id)
+        today = datetime.date.today().isoformat()
+        # last_fish formato YYYY-MM-DD con hora, extraemos solo la fecha
+        last_date = (u["last_fish"] or "")[:10] if u["last_fish"] else ""
+        if last_date != today:
+            await self.conn.execute(
+                "UPDATE users SET fish_count=0 WHERE guild_id=? AND user_id=?",
+                (guild_id, user_id))
+            await self.conn.commit()
+            return 0
+        return u["fish_count"]
+
+    async def bump_fish_count(self, guild_id: int, user_id: int) -> int:
+        await self.conn.execute(
+            "UPDATE users SET fish_count=fish_count+1 WHERE guild_id=? AND user_id=?",
+            (guild_id, user_id))
+        await self.conn.commit()
+        return await self.get_fish_count(guild_id, user_id)
+
+    async def set_vip_since(self, guild_id: int, user_id: int,
+                           iso: str):
+        """Set vip_since solo si no está ya definido."""
+        u = await self.get_user(guild_id, user_id)
+        if not u["vip_since"]:
+            await self.conn.execute(
+                "UPDATE users SET vip_since=? WHERE guild_id=? AND user_id=?",
+                (iso, guild_id, user_id))
+            await self.conn.commit()
 
     async def bump_login_streak(self, guild_id: int, user_id: int,
                                 today_iso: str) -> int:

@@ -57,6 +57,17 @@ Con permiso de *Manage Server*, usa `/setup`:
 | `/setup canal-sugerencias-en #canal` | Canal de sugerencias en inglés (mensajes → votos) |
 | `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión numerada) |
 | `/setup canal-trades #canal` | Revisión del staff de `/trade` |
+
+## Beneficios VIP
+
+El rol **VIP** (obtenible en la tienda) incluye:
+
+- **+50% Hearts** en `/daily`, `/work`, `/pescar`, `/trade` y recompensas de Moonveil (exploración/batallas)
+- **Cooldowns a la mitad** en `/work` (4h→2h), `/pescar` (1h→30m), `/rob` (24h→12h)
+- **15 usos diarios de /pescar** (vs 10 normales)
+- **Perfil premium** con diseño dorado/púrpura, banner grande y estadísticas VIP exclusivas
+
+
 | `/setup canal-qotd #canal` | Canal de la pregunta del día (diaria, bilingüe) |
 | `/setup canal-confesiones #canal` | Canal de confesiones anónimas (mensajes → confesión sin autor) |
 | `/setup canal-qotd #canal` | Canal donde el bot publica la pregunta del día |

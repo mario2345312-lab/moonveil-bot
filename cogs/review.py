@@ -53,6 +53,14 @@ def is_staff(member: discord.Member, settings: dict) -> bool:
     return bool(ids) and any(r.id in ids for r in member.roles)
 
 
+def is_vip(member: discord.Member, settings: dict) -> bool:
+    rid = settings.get("vip_role_id")
+    if rid:
+        return any(r.id == rid for r in member.roles)
+    role = discord.utils.get(member.guild.roles, name="VIP")
+    return role is not None and role in member.roles
+
+
 async def notify_user(bot, guild: discord.Guild, user_id: int,
                       fallback_channel_id: int | None, embed: discord.Embed):
     """Avisa al usuario por DM; si falla, por el canal donde se originó."""
@@ -376,10 +384,12 @@ class ReviewView(discord.ui.View):
                            p=row["progress"], n=mission["required_count"])
 
         if kind == "trade":
-            await self.bot.db.add_hearts(guild.id, member.id,
-                                         config.TRADE_REWARD)
+            is_v = is_vip(member, settings)
+            reward = round(config.TRADE_REWARD * (config.VIP_HEARTS_MULT if is_v else 1.0))
+            await self.bot.db.add_hearts(guild.id, member.id, reward)
             return True, t(lang, "rev.trade_done",
-                           hearts=config.TRADE_REWARD, heart=config.HEART)
+                           hearts=reward, heart=config.HEART,
+                           vip=" 💎" if is_v else "")
 
         if kind == "achievement":
             ach = config.get_achievement(sub["ref_id"])
